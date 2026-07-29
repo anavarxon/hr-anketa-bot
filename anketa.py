@@ -24,7 +24,7 @@ logging.basicConfig(
 # === SOZLAMALAR (Environment Variables orqali olinadi) ===
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7634467401:AAGBpV1MoC0qzeo1_8OS0bXcc6NZ3_uQubI")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "1168952611"))
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6KvTO0K1qWFONliGDEyJNCd2UbmZu76sQda9fDRp7K92w")
 
 # Yangi Gemini Client
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
