@@ -62,9 +62,9 @@ QUYIDAGI MEZONLAR BO'YICHA TAHLIL QILING (O'zbek tilida, professional va aniq ja
    - HR uchun tavsiya: (Suhbatga chaqirish shart / Zaxirada ushlash / Rad etish)
 """
     try:
-        # Model 'gemini-2.0-flash' ga o'zgardi (ushbu model 100% ishlaydi)
+        # Model 'gemini-3.6-flash' ga o'zgardi:
         response = ai_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3.6-flash',  # 👈 Shu yerga 'gemini-3.6-flash' deb yozing
             contents=prompt,
         )
         return response.text
