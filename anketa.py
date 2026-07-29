@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 
 # === SOZLAMALAR (Render Environment Variables'dan xavfsiz o'qiladi) ===
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7634467401:AAGBpV1MoC0qzeo1_8OS0bXcc6NZ3_uQubI")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8707986524:AAEo-rIRHunBAhLksE0wSapVCsP_X7lpb1Q")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "1168952611"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
