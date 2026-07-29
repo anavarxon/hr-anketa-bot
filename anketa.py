@@ -18,8 +18,8 @@ logging.basicConfig(
 
 # === SOZLAMALAR ===
 BOT_TOKEN = "7634467401:AAGBpV1MoC0qzeo1_8OS0bXcc6NZ3_uQubI"  # Bot Token
-ADMIN_ID = 584930291  # Telegram ID
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"  # Google AI Studio API Key
+ADMIN_ID = 1168952611  # Telegram ID
+GEMINI_API_KEY = "AQ.Ab8RN6JZuwaFTXld3fv_JsG5UevwrjXf_0jd7u4X8wxARinDJg"  # Google AI Studio API Key
 
 # Yangi Gemini Client
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
