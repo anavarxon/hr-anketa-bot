@@ -88,10 +88,13 @@ PERSISTENCE_FILE = os.path.join(DATA_DIR, "bot_data.pickle")
 RAW_KEYS = os.getenv("GEMINI_API_KEY", "")
 GEMINI_API_KEYS = [k.strip() for k in RAW_KEYS.split(",") if k.strip()]
 
-# ✅ Faqat HAQIQATDAN mavjud modellar.
-# Oxirgilari — zaxira: agar 2.5 modellarda limit tugasa, 2.0 ishlatiladi.
-VALIDATION_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash-lite"]
-ANALYSIS_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
+# ✅ 2026-yil avgust holatiga ko'ra amaldagi modellar.
+# ⚠️ Gemini 2.0 modellari 2026-yil 1-iyunda o'chirilgan, 2.5 esa yangi
+# API kalitlar uchun yopilgan (404 "no longer available to new users").
+# Agar kelajakda yana 404 chiqsa — /modellar buyrug'i orqali kalitingizga
+# ochiq bo'lgan modellar ro'yxatini ko'ring va shu ro'yxatni yangilang.
+VALIDATION_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash"]
+ANALYSIS_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
 
 # AI chaqiruvlari uchun timeout (soniya)
 VALIDATION_TIMEOUT = 25
@@ -700,6 +703,45 @@ async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     )
     await message.reply_text(status, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+
+async def cmd_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """🔒 Faqat dasturchi uchun: kalitga ochiq bo'lgan modellar ro'yxati."""
+    message = update.effective_message
+    user = update.effective_user
+    if message is None or user is None or user.id != DEVELOPER_ID:
+        return
+
+    if not GEMINI_API_KEYS:
+        await message.reply_text("❌ GEMINI_API_KEY topilmadi.")
+        return
+
+    await message.reply_text("🔎 Mavjud modellar ro'yxati olinmoqda...")
+    lines = []
+
+    for idx, api_key in enumerate(GEMINI_API_KEYS, start=1):
+        lines.append(f"\n🔑 <b>Kalit #{idx}</b> (...{api_key[-4:]})")
+        try:
+            client = _get_client(api_key)
+            models = await asyncio.wait_for(
+                asyncio.to_thread(lambda c=client: list(c.models.list())), timeout=45
+            )
+            names = []
+            for m in models:
+                actions = getattr(m, "supported_actions", None) or []
+                if actions and "generateContent" not in actions:
+                    continue
+                name = (getattr(m, "name", "") or "").replace("models/", "")
+                if name and "embedding" not in name and "image" not in name:
+                    names.append(name)
+            if names:
+                lines.extend(f"  • {esc(n)}" for n in sorted(names))
+            else:
+                lines.append("  ⚠️ Matn generatsiya qiluvchi model topilmadi.")
+        except Exception as e:
+            lines.append(f"  ❌ {esc(str(e)[:200])}")
+
+    await send_long(context.bot, message.chat_id, "\n".join(lines))
 
 
 async def cmd_aitest(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1411,6 +1453,7 @@ def main():
     # 🔒 Yashirin dasturchi buyrug'i
     app.add_handler(CommandHandler("rejim", cmd_mode))
     app.add_handler(CommandHandler("aitest", cmd_aitest))
+    app.add_handler(CommandHandler("modellar", cmd_models))
     app.add_handler(CallbackQueryHandler(handle_mode_decision, pattern=r"^mode_"))
 
     # Qabul / rad etish tugmalari
