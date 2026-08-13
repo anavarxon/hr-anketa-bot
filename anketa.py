@@ -88,9 +88,10 @@ PERSISTENCE_FILE = os.path.join(DATA_DIR, "bot_data.pickle")
 RAW_KEYS = os.getenv("GEMINI_API_KEY", "")
 GEMINI_API_KEYS = [k.strip() for k in RAW_KEYS.split(",") if k.strip()]
 
-# ✅ Faqat HAQIQATDAN mavjud modellar
-VALIDATION_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
-ANALYSIS_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro"]
+# ✅ Faqat HAQIQATDAN mavjud modellar.
+# Oxirgilari — zaxira: agar 2.5 modellarda limit tugasa, 2.0 ishlatiladi.
+VALIDATION_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash-lite"]
+ANALYSIS_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
 
 # AI chaqiruvlari uchun timeout (soniya)
 VALIDATION_TIMEOUT = 25
@@ -156,12 +157,12 @@ def call_gemini_with_fallback(contents, models):
     if not GEMINI_API_KEYS:
         raise ValueError("GEMINI_API_KEY topilmadi!")
 
-    last_error = None
-    for api_key in GEMINI_API_KEYS:
+    errors = []
+    for idx, api_key in enumerate(GEMINI_API_KEYS, start=1):
         try:
             client = _get_client(api_key)
         except Exception as e:
-            last_error = e
+            errors.append(f"Kalit #{idx}: client yaratilmadi — {e}")
             logger.warning("Client yaratilmadi: %s", e)
             continue
 
@@ -171,11 +172,13 @@ def call_gemini_with_fallback(contents, models):
                     model=model_name, contents=contents
                 )
             except Exception as e:
-                last_error = e
+                msg = str(e).replace("\n", " ")[:300]
+                errors.append(f"Kalit #{idx} / {model_name}: {msg}")
                 logger.warning("Model '%s' ishlamadi: %s", model_name, e)
                 continue
 
-    raise last_error if last_error else RuntimeError("Gemini: hech nima ishlamadi.")
+    detail = " | ".join(errors) if errors else "noma'lum sabab"
+    raise RuntimeError(f"Gemini ishlamadi. Tafsilot: {detail}")
 
 
 async def _gemini_async(contents, models, timeout: int):
@@ -609,7 +612,11 @@ QUYIDAGI MEZONLAR BO'YICHA "ZIYNAT" DO'KONI DIREKTORI UCHUN HR TAHLIL BERING
         return "⚠️ AI tahlili juda uzoq davom etdi. Anketani qo'lda ko'rib chiqing."
     except Exception as e:
         logger.error("Gemini AI xatoligi: %s", e)
-        return "⚠️ Sun'iy intellekt tahlilida xatolik yuz berdi. Anketani qo'lda ko'rib chiqing."
+        return (
+            "⚠️ Sun'iy intellekt tahlilida xatolik yuz berdi. "
+            "Anketani qo'lda ko'rib chiqing.\n\n"
+            f"🔧 Texnik sabab: {str(e)[:800]}"
+        )
 
 
 # ==========================================================================
@@ -693,6 +700,45 @@ async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     )
     await message.reply_text(status, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+
+async def cmd_aitest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """🔒 Faqat dasturchi uchun: har bir kalit va modelni alohida sinaydi."""
+    message = update.effective_message
+    user = update.effective_user
+    if message is None or user is None or user.id != DEVELOPER_ID:
+        return
+
+    if not GEMINI_API_KEYS:
+        await message.reply_text("❌ GEMINI_API_KEY umuman topilmadi.")
+        return
+
+    await message.reply_text(f"🔎 {len(GEMINI_API_KEYS)} ta kalit sinalmoqda...")
+
+    all_models = list(dict.fromkeys(VALIDATION_MODELS + ANALYSIS_MODELS))
+    lines = []
+
+    for idx, api_key in enumerate(GEMINI_API_KEYS, start=1):
+        lines.append(f"\n🔑 <b>Kalit #{idx}</b> (...{api_key[-4:]})")
+        for model_name in all_models:
+            try:
+                client = _get_client(api_key)
+                resp = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        client.models.generate_content,
+                        model=model_name,
+                        contents="Javob: OK",
+                    ),
+                    timeout=30,
+                )
+                ok = bool(resp.text and resp.text.strip())
+                lines.append(f"  {'✅' if ok else '⚠️ bo`sh javob'} {model_name}")
+            except asyncio.TimeoutError:
+                lines.append(f"  ⏱ {model_name} — timeout")
+            except Exception as e:
+                lines.append(f"  ❌ {model_name} — {esc(str(e)[:180])}")
+
+    await send_long(context.bot, message.chat_id, "\n".join(lines))
 
 
 async def handle_mode_decision(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1364,6 +1410,7 @@ def main():
 
     # 🔒 Yashirin dasturchi buyrug'i
     app.add_handler(CommandHandler("rejim", cmd_mode))
+    app.add_handler(CommandHandler("aitest", cmd_aitest))
     app.add_handler(CallbackQueryHandler(handle_mode_decision, pattern=r"^mode_"))
 
     # Qabul / rad etish tugmalari
