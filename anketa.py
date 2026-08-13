@@ -74,7 +74,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 # ⚠️ TAVSIYA: bu ID'larni koddan olib tashlab, faqat Render'ning
 # "Environment Variables" bo'limida saqlang. Hozir eski qiymatlar zaxira
 # sifatida qoldirildi, toki bot to'xtab qolmasin.
-ADMIN_ID = int(os.getenv("ADMIN_ID", "766309793"))          # Direktor
+ADMIN_ID = int(os.getenv("ADMIN_ID", "2129621617"))          # Direktor
 DEVELOPER_ID = int(os.getenv("DEVELOPER_ID", "1168952611"))  # Dasturchi
 
 # Fayllar saqlanadigan papka (Render'da Disk ulasangiz — DATA_DIR=/data qiling)
