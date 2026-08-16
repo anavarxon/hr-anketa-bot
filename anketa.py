@@ -1236,7 +1236,7 @@ async def get_additional(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await reply(
         update.message,
-        "Rahmat! Anketangiz qabul qilindi. Sun'iy intellekt ma'lumotlaringizni tahlil qilmoqda...",
+        "Rahmat! Anketangiz qabul qilindi.",
         reply_markup=ReplyKeyboardRemove(),
     )
 
